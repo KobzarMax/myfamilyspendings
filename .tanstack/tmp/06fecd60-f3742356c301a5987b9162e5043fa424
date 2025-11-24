@@ -1,0 +1,320 @@
+import { createFileRoute } from '@tanstack/react-router'
+import type { Transaction } from '../../types';
+
+export const Route = createFileRoute('/_authenticated/transactions')({
+  component: TransactionsPage,
+});
+
+function TransactionsPage() {
+  const { user } = useAuth();
+  const [familyId, setFamilyId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Form state
+  const [formData, setFormData] = useState({
+    amount: '',
+    type: 'expense' as 'income' | 'expense',
+    category: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    is_recurring: false,
+    status: 'completed' as 'planned' | 'completed',
+  });
+
+  useEffect(() => {
+    async function getFamilyId() {
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('family_id')
+        .eq('id', user.id)
+        .single();
+      if (data) setFamilyId(data.family_id);
+    }
+    getFamilyId();
+  }, [user]);
+
+  const { data: transactions, isLoading } = useQuery({
+    queryKey: ['transactions', familyId],
+    queryFn: async () => {
+      if (!familyId) return [];
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('family_id', familyId)
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      return data as Transaction[];
+    },
+    enabled: !!familyId,
+  });
+
+  const addTransactionMutation = useMutation({
+    mutationFn: async (newTransaction: typeof formData) => {
+      if (!familyId || !user) throw new Error('Missing family or user');
+      
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([
+          {
+            ...newTransaction,
+            family_id: familyId,
+            user_id: user.id,
+          },
+        ])
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['balance', familyId] });
+      setIsModalOpen(false);
+      setFormData({
+        amount: '',
+        type: 'expense',
+        category: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        is_recurring: false,
+        status: 'completed',
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addTransactionMutation.mutate(formData);
+  };
+
+  if (!familyId) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-gray-600">Please create or join a family first.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-8">
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-2xl font-semibold leading-6 text-gray-900">Transactions</h1>
+          <p className="mt-2 text-sm text-gray-700">
+            A list of all transactions including income and expenses.
+          </p>
+        </div>
+        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          >
+            <Plus className="h-4 w-4" />
+            Add Transaction
+          </button>
+        </div>
+      </div>
+
+      {/* Transactions List */}
+      <div className="mt-8 flow-root">
+        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+            <table className="min-w-full divide-y divide-gray-300">
+              <thead>
+                <tr>
+                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">
+                    Date
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Type
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Category
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Description
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Amount
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {isLoading ? (
+                  <>
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                  </>
+                ) : transactions?.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center text-gray-500">
+                      No transactions yet
+                    </td>
+                  </tr>
+                ) : (
+                  transactions?.map((transaction) => (
+                    <tr key={transaction.id}>
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900 sm:pl-0">
+                        {new Date(transaction.date).toLocaleDateString()}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm">
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                          transaction.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {transaction.type}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{transaction.category}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{transaction.description}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 font-medium">
+                        ${Number(transaction.amount).toFixed(2)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{transaction.status}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Transaction Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-10 overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-30 transition-opacity backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+            
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <div className="absolute right-0 top-0 pr-4 pt-4">
+                <button
+                  type="button"
+                  className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 w-full text-center sm:mt-0 sm:text-left">
+                  <h3 className="text-lg font-semibold leading-6 text-gray-900">Add Transaction</h3>
+                  
+                  <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Type</label>
+                      <select
+                        value={formData.type}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value as 'income' | 'expense' })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                      >
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Amount</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={formData.amount}
+                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Category</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        placeholder="e.g., Groceries, Rent, Salary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Description</label>
+                      <input
+                        type="text"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        placeholder="Optional details"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                      />
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_recurring}
+                        onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <label className="ml-2 block text-sm text-gray-900">Recurring</label>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Status</label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value as 'planned' | 'completed' })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                      >
+                        <option value="completed">Completed</option>
+                        <option value="planned">Planned</option>
+                      </select>
+                    </div>
+
+                    <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
+                      <button
+                        type="submit"
+                        disabled={addTransactionMutation.isPending}
+                        className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:w-auto disabled:opacity-50"
+                      >
+                        {addTransactionMutation.isPending ? 'Adding...' : 'Add Transaction'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

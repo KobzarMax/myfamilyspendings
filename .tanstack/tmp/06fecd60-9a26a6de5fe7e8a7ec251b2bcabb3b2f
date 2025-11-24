@@ -1,0 +1,144 @@
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Plus, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { useFamilyId } from '../../hooks/useFamily';
+import { useTransactions, useBalance } from '../../hooks/useTransactions';
+import { ListItemSkeleton } from '../../components/Skeleton';
+
+export const Route = createFileRoute('/_authenticated/dashboard')({
+  component: DashboardPage,
+});
+
+function DashboardPage() {
+  const familyId = useFamilyId();
+  const { data: transactions, isLoading } = useTransactions(familyId, 5);
+  const { data: balance } = useBalance(familyId);
+
+  if (!familyId) {
+    return (
+      <div className="text-center py-10">
+        <h2 className="text-2xl font-bold text-gray-900">Welcome!</h2>
+        <p className="mt-2 text-gray-600">To get started, you need to join or create a family space.</p>
+        <div className="mt-6 flex justify-center gap-4">
+          <Link
+            to="/create-family"
+            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+          >
+            Create Family Space
+          </Link>
+          <Link
+             to="/invite"
+             className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          >
+            Wait for Invite
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Balance Card */}
+      <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="p-5">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Wallet className="h-6 w-6 text-gray-400" aria-hidden="true" />
+            </div>
+            <div className="ml-5 w-0 flex-1">
+              <dl>
+                <dt className="truncate text-sm font-medium text-gray-500">Current Balance</dt>
+                <dd>
+                  <div className="text-lg font-medium text-gray-900">
+                    {balance !== undefined ? `$${balance.toFixed(2)}` : (
+                      <div className="animate-pulse bg-gray-200 h-6 w-24 rounded" />
+                    )}
+                  </div>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+        <div className="bg-gray-50 px-5 py-3">
+          <div className="text-sm">
+            <Link to="/transactions" className="font-medium text-indigo-700 hover:text-indigo-900">
+              View all transactions
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="p-6">
+          <h3 className="text-base font-semibold leading-6 text-gray-900">Recent Activity</h3>
+          <div className="mt-6 flow-root">
+            <ul role="list" className="-my-5 divide-y divide-gray-200">
+              {isLoading ? (
+                <>
+                  <ListItemSkeleton />
+                  <ListItemSkeleton />
+                  <ListItemSkeleton />
+                </>
+              ) : transactions?.length === 0 ? (
+                <li className="py-4 text-center text-gray-500">No recent transactions</li>
+              ) : (
+                transactions?.map((transaction) => (
+                  <li key={transaction.id} className="py-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        {transaction.type === 'income' ? (
+                          <ArrowUpRight className="h-6 w-6 text-green-500" />
+                        ) : (
+                          <ArrowDownRight className="h-6 w-6 text-red-500" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-gray-900">{transaction.description || transaction.category}</p>
+                        <p className="truncate text-sm text-gray-500">{new Date(transaction.date).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          transaction.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {transaction.type === 'income' ? '+' : '-'}${Number(transaction.amount).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+          <div className="mt-6">
+            <Link
+              to="/transactions"
+              className="flex w-full items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0"
+            >
+              View all
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Link
+          to="/transactions"
+          className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400"
+        >
+          <div className="flex-shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500 text-white">
+              <Plus className="h-6 w-6" />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="absolute inset-0" aria-hidden="true" />
+            <p className="text-sm font-medium text-gray-900">Add Transaction</p>
+            <p className="truncate text-sm text-gray-500">Log income or expense</p>
+          </div>
+        </Link>
+      </div>
+    </div>
+  );
+}
