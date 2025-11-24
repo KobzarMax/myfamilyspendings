@@ -16,7 +16,6 @@ export default function TransactionForm({
     isSubmitting,
     categories,
     onCancel,
-    isEditing = false,
     initialValues,
 }: TransactionFormProps) {
     const form = useForm({
