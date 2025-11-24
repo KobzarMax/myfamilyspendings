@@ -78,6 +78,12 @@ function LoginPage() {
             </div>
           </div>
 
+          <div className="flex items-center justify-end">
+            <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+              Forgot password?
+            </Link>
+          </div>
+
           {error && (
             <div className="text-red-500 text-sm text-center">{error}</div>
           )}

@@ -1,5 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useLocation } from '@tanstack/react-router';
 import { useAuth } from '../context/AuthContext';
+import { useAuthStore } from '../store/authStore';
 import Layout from '../components/Layout';
 
 export const Route = createFileRoute('/_authenticated')({
@@ -13,6 +14,8 @@ export const Route = createFileRoute('/_authenticated')({
 
 function AuthenticatedLayout() {
   const { user, loading } = useAuth();
+  const hasCompletedOnboarding = useAuthStore((state) => state.hasCompletedOnboarding);
+  const location = useLocation();
 
   // Wait for auth to load before redirecting
   if (loading) {
@@ -27,6 +30,18 @@ function AuthenticatedLayout() {
   if (!user) {
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
+    }
+    return null;
+  }
+
+  // Check if user has completed onboarding
+  // Allow access to onboarding and create-family routes without onboarding check
+  const isOnboardingRoute = location.pathname === '/onboarding';
+  const isCreateFamilyRoute = location.pathname === '/create-family';
+
+  if (!hasCompletedOnboarding && !isOnboardingRoute && !isCreateFamilyRoute) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/onboarding';
     }
     return null;
   }

@@ -5,8 +5,10 @@ import type { User } from '../types';
 interface AuthState {
   user: User | null;
   familyId: string | null;
+  hasCompletedOnboarding: boolean;
   setUser: (user: User | null) => void;
   setFamilyId: (familyId: string | null) => void;
+  setOnboardingCompleted: () => void;
   clearAuth: () => void;
 }
 
@@ -19,9 +21,11 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       familyId: null,
+      hasCompletedOnboarding: false,
       setUser: (user) => set({ user }),
       setFamilyId: (familyId) => set({ familyId }),
-      clearAuth: () => set({ user: null, familyId: null }),
+      setOnboardingCompleted: () => set({ hasCompletedOnboarding: true }),
+      clearAuth: () => set({ user: null, familyId: null, hasCompletedOnboarding: false }),
     }),
     {
       name: 'auth-storage',

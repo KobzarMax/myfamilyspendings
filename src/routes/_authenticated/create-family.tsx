@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../store/authStore';
 import { categoryApi } from '../../lib/api';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -15,12 +16,13 @@ function CreateFamilyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const setOnboardingCompleted = useAuthStore((state) => state.setOnboardingCompleted);
   const navigate = useNavigate();
 
   const handleCreateFamily = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+
     setLoading(true);
     setError(null);
 
@@ -79,6 +81,9 @@ function CreateFamilyPage() {
         // Don't fail family creation if category seeding fails
       }
 
+      // 4. Mark onboarding as completed
+      setOnboardingCompleted();
+
       navigate({ to: '/' });
     } catch (err: any) {
       setError(err.message);
@@ -101,9 +106,9 @@ function CreateFamilyPage() {
           placeholder="e.g. The Smiths"
           error={error || undefined}
         />
-        
-        <Button 
-          type="submit" 
+
+        <Button
+          type="submit"
           isLoading={loading}
           className="w-full"
         >
