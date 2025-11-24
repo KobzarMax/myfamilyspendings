@@ -58,9 +58,6 @@ export default function Layout() {
                 <NavLink to="/categories" icon={Tags}>
                   Categories
                 </NavLink>
-                <NavLink to="/savings" icon={PiggyBank}>
-                  Savings
-                </NavLink>
               </div>
             </div>
 

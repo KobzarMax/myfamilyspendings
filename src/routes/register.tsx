@@ -46,11 +46,13 @@ function RegisterPage() {
             },
           ]);
 
-        if (profileError) {
+        console.log(data, profileError);
+
+        if (!data && profileError) {
           throw new Error(`Failed to create profile: ${profileError.message}`);
         }
 
-        navigate({ to: '/' });
+        navigate({ to: '/login' });
       }
     } catch (err: any) {
       setError(err.message);
