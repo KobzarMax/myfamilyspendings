@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { supabase } from '../lib/supabase';
+import Input from '../components/Input';
 
 export const Route = createFileRoute('/register')({
   component: RegisterPage,
@@ -48,7 +49,7 @@ function RegisterPage() {
         if (profileError) {
           throw new Error(`Failed to create profile: ${profileError.message}`);
         }
-        
+
         navigate({ to: '/' });
       }
     } catch (err: any) {
@@ -99,22 +100,17 @@ function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            <Input
+              label="Password"
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="rounded-b-md"
+            />
           </div>
 
           {error && (
