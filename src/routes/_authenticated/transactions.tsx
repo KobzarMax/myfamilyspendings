@@ -8,8 +8,10 @@ import { useCategories } from '../../hooks/useCategories';
 import { profileQueryOptions, transactionsQueryOptions, categoriesQueryOptions } from '../../lib/queries';
 import TransactionsTable from '../../components/transactions/TransactionsTable';
 import AddTransactionModal from '../../components/transactions/AddTransactionModal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import EmptyState from '../../components/shared/EmptyState';
 import type { TransactionFormValues } from '../../components/transactions/TransactionForm';
+import type { Transaction } from '../../types';
 
 export const Route = createFileRoute('/_authenticated/transactions')({
   loader: async ({ context: { queryClient } }) => {
@@ -36,7 +38,21 @@ function TransactionsPage() {
   const familyId = profile?.family_id || null;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const queryClient = useQueryClient();
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+  });
 
   const { data: categories } = useCategories(familyId);
   const { data: transactions, isLoading } = useQuery(transactionsQueryOptions(familyId || undefined));
@@ -63,11 +79,72 @@ function TransactionsPage() {
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['balance', familyId] });
       setIsModalOpen(false);
+      setEditingTransaction(null);
+    },
+  });
+
+  const updateTransactionMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: TransactionFormValues }) => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', id)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['balance', familyId] });
+      setIsModalOpen(false);
+      setEditingTransaction(null);
+    },
+  });
+
+  const deleteTransactionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['balance', familyId] });
     },
   });
 
   const handleSubmit = (values: TransactionFormValues) => {
-    addTransactionMutation.mutate(values);
+    if (editingTransaction) {
+      updateTransactionMutation.mutate({ id: editingTransaction.id, updates: values });
+    } else {
+      addTransactionMutation.mutate(values);
+    }
+  };
+
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Transaction',
+      message: 'Are you sure you want to delete this transaction? This action cannot be undone.',
+      onConfirm: async () => {
+        await deleteTransactionMutation.mutateAsync(id);
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+      },
+    });
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingTransaction(null);
   };
 
   if (!familyId) {
@@ -78,6 +155,19 @@ function TransactionsPage() {
       />
     );
   }
+
+  // Prepare initial values for editing
+  const initialValues = editingTransaction ? {
+    amount: editingTransaction.amount.toString(),
+    type: editingTransaction.type,
+    category: editingTransaction.category,
+    description: editingTransaction.description || '',
+    date: editingTransaction.date instanceof Date
+      ? editingTransaction.date.toISOString().split('T')[0]
+      : editingTransaction.date,
+    is_recurring: editingTransaction.isRecurring || false,
+    status: editingTransaction.status,
+  } : undefined;
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
@@ -101,15 +191,33 @@ function TransactionsPage() {
       </div>
 
       {/* Transactions Table */}
-      <TransactionsTable transactions={transactions} isLoading={isLoading} />
+      <TransactionsTable
+        transactions={transactions}
+        isLoading={isLoading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
-      {/* Add Transaction Modal */}
+      {/* Add/Edit Transaction Modal */}
       <AddTransactionModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         onSubmit={handleSubmit}
-        isSubmitting={addTransactionMutation.isPending}
+        isSubmitting={addTransactionMutation.isPending || updateTransactionMutation.isPending}
         categories={categories}
+        isEditing={!!editingTransaction}
+        initialValues={initialValues}
+      />
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant="danger"
+        isLoading={deleteTransactionMutation.isPending}
       />
     </div>
   );

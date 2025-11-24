@@ -7,6 +7,8 @@ interface TransactionFormProps {
     isSubmitting: boolean;
     categories: Category[] | undefined;
     onCancel: () => void;
+    isEditing?: boolean;
+    initialValues?: TransactionFormValues;
 }
 
 export default function TransactionForm({
@@ -14,9 +16,11 @@ export default function TransactionForm({
     isSubmitting,
     categories,
     onCancel,
+    isEditing = false,
+    initialValues,
 }: TransactionFormProps) {
     const form = useForm({
-        defaultValues: {
+        defaultValues: initialValues || {
             amount: '',
             type: 'expense' as 'income' | 'expense',
             category: '',

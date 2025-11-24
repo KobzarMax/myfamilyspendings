@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, useSeedDefaultCategories } from '../../hooks/useCategories';
 import PageHeader from '../../components/PageHeader';
 import Button from '../../components/Button';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import type { Category } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -43,6 +44,20 @@ function CategoriesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+  });
+
   const handleOpenModal = (category?: Category) => {
     setEditingCategory(category || null);
     setIsModalOpen(true);
@@ -71,20 +86,34 @@ function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this category?')) {
-      await deleteCategory.mutateAsync(id);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Category',
+      message: 'Are you sure you want to delete this category? This action cannot be undone.',
+      variant: 'danger',
+      onConfirm: async () => {
+        await deleteCategory.mutateAsync(id);
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+      },
+    });
   };
 
   const handleSeed = async () => {
-    if (confirm('This will add default categories. Continue?')) {
-      try {
-        await seedDefaultCategories.mutateAsync();
-      } catch (error) {
-        console.error('Failed to seed categories:', error);
-        alert('Failed to seed categories. Please try again.');
-      }
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Add Default Categories',
+      message: 'This will add default income and expense categories to your family. Continue?',
+      variant: 'info',
+      onConfirm: async () => {
+        try {
+          await seedDefaultCategories.mutateAsync();
+          setConfirmDialog({ ...confirmDialog, isOpen: false });
+        } catch (error) {
+          console.error('Failed to seed categories:', error);
+          setConfirmDialog({ ...confirmDialog, isOpen: false });
+        }
+      },
+    });
   };
 
   if (!familyId) {
@@ -156,6 +185,16 @@ function CategoriesPage() {
         isSubmitting={createCategory.isPending || updateCategory.isPending}
         isEditing={!!editingCategory}
         initialValues={initialValues}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        isLoading={deleteCategory.isPending || seedDefaultCategories.isPending}
       />
     </div>
   );

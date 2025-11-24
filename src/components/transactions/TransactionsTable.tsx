@@ -5,9 +5,11 @@ import type { Transaction } from '../../types';
 interface TransactionsTableProps {
     transactions: Transaction[] | undefined;
     isLoading: boolean;
+    onEdit: (transaction: Transaction) => void;
+    onDelete: (id: string) => void;
 }
 
-export default function TransactionsTable({ transactions, isLoading }: TransactionsTableProps) {
+export default function TransactionsTable({ transactions, isLoading, onEdit, onDelete }: TransactionsTableProps) {
     return (
         <div className="mt-8 flow-root">
             <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -33,6 +35,9 @@ export default function TransactionsTable({ transactions, isLoading }: Transacti
                                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                     Status
                                 </th>
+                                <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-0">
+                                    <span className="sr-only">Actions</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -46,13 +51,18 @@ export default function TransactionsTable({ transactions, isLoading }: Transacti
                                 </>
                             ) : transactions?.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-4 text-center text-gray-500">
+                                    <td colSpan={7} className="py-4 text-center text-gray-500">
                                         No transactions yet
                                     </td>
                                 </tr>
                             ) : (
                                 transactions?.map((transaction) => (
-                                    <TransactionRow key={transaction.id} transaction={transaction} />
+                                    <TransactionRow
+                                        key={transaction.id}
+                                        transaction={transaction}
+                                        onEdit={onEdit}
+                                        onDelete={onDelete}
+                                    />
                                 ))
                             )}
                         </tbody>

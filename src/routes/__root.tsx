@@ -16,7 +16,7 @@ function RootComponent() {
   return (
     <AuthProvider>
       <Outlet />
-      <TanStackRouterDevtools position="bottom-right" />
+      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
     </AuthProvider>
   );
 }

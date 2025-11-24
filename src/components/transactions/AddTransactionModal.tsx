@@ -9,6 +9,8 @@ interface AddTransactionModalProps {
     onSubmit: (values: TransactionFormValues) => void;
     isSubmitting: boolean;
     categories: Category[] | undefined;
+    isEditing?: boolean;
+    initialValues?: TransactionFormValues;
 }
 
 export default function AddTransactionModal({
@@ -17,6 +19,8 @@ export default function AddTransactionModal({
     onSubmit,
     isSubmitting,
     categories,
+    isEditing = false,
+    initialValues,
 }: AddTransactionModalProps) {
     if (!isOpen) return null;
 
@@ -41,12 +45,16 @@ export default function AddTransactionModal({
 
                     <div className="sm:flex sm:items-start">
                         <div className="mt-3 w-full text-center sm:mt-0 sm:text-left">
-                            <h3 className="text-lg font-semibold leading-6 text-gray-900">Add Transaction</h3>
+                            <h3 className="text-lg font-semibold leading-6 text-gray-900">
+                                {isEditing ? 'Edit Transaction' : 'Add Transaction'}
+                            </h3>
                             <TransactionForm
                                 onSubmit={onSubmit}
                                 isSubmitting={isSubmitting}
                                 categories={categories}
                                 onCancel={onClose}
+                                isEditing={isEditing}
+                                initialValues={initialValues}
                             />
                         </div>
                     </div>

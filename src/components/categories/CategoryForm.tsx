@@ -1,6 +1,9 @@
+import { useState, useRef } from 'react';
 import { useForm, revalidateLogic } from '@tanstack/react-form';
 import { categorySchema, type CategoryFormValues } from '../../lib/schemas';
+import { Smile } from 'lucide-react';
 import Input from '../Input';
+import EmojiPicker from '../EmojiPicker';
 
 interface CategoryFormProps {
     onSubmit: (values: CategoryFormValues) => void;
@@ -15,6 +18,9 @@ export default function CategoryForm({
     isEditing,
     initialValues,
 }: CategoryFormProps) {
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const emojiButtonRef = useRef<HTMLButtonElement | null>(null);
+
     const form = useForm({
         defaultValues: initialValues || {
             name: '',
@@ -89,19 +95,39 @@ export default function CategoryForm({
                 name="icon"
             >
                 {(field) => (
-                    <div>
-                        <Input
-                            id="icon"
-                            label="Icon (emoji)"
-                            type="text"
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            onBlur={field.handleBlur}
-                            placeholder="🛒"
-                            maxLength={2}
-                        />
+                    <div className="relative">
+                        <label htmlFor="icon" className="block text-sm font-medium text-gray-700 mb-1">
+                            Icon (emoji)
+                        </label>
+                        <div className="flex items-center gap-2">
+                            {/* Display selected emoji */}
+                            <div className="flex items-center justify-center w-16 h-16 text-4xl border-2 border-gray-300 rounded-lg bg-gray-50">
+                                {field.state.value || '😊'}
+                            </div>
+
+                            {/* Button to open emoji picker */}
+                            <button
+                                ref={emojiButtonRef}
+                                type="button"
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                                <Smile className="h-5 w-5" />
+                                {field.state.value ? 'Change Emoji' : 'Choose Emoji'}
+                            </button>
+                        </div>
                         {field.state.meta.errors?.[0] && (
                             <p className="mt-1 text-sm text-red-600">{field.state.meta.errors[0].message}</p>
+                        )}
+
+                        {/* Emoji Picker Dropdown */}
+                        {showEmojiPicker && (
+                            <EmojiPicker
+                                currentEmoji={field.state.value}
+                                onSelect={(emoji) => field.handleChange(emoji)}
+                                onClose={() => setShowEmojiPicker(false)}
+                                buttonRef={emojiButtonRef}
+                            />
                         )}
                     </div>
                 )}
