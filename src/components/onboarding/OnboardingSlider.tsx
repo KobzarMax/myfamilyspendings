@@ -59,7 +59,7 @@ export default function OnboardingSlider({ slides, onComplete, onSkip }: Onboard
     const currentSlideData = slides[currentSlide];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col">
+        <div className="h-[100dvh] overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col relative">
             {/* Skip Button */}
             {onSkip && currentSlide < slides.length - 1 && (
                 <div className="absolute top-6 right-6 z-10">
@@ -73,8 +73,8 @@ export default function OnboardingSlider({ slides, onComplete, onSkip }: Onboard
             )}
 
             {/* Main Content */}
-            <div className="flex-1 flex items-center justify-center px-4 py-12">
-                <div className="max-w-2xl w-full">
+            <div className="flex-1 flex items-center justify-center px-4 pt-16 pb-4 overflow-y-auto">
+                <div className="max-w-2xl w-full flex flex-col h-full">
                     <AnimatePresence mode="wait" custom={direction}>
                         <motion.div
                             key={currentSlide}
@@ -87,31 +87,31 @@ export default function OnboardingSlider({ slides, onComplete, onSkip }: Onboard
                                 x: { type: 'spring', stiffness: 300, damping: 30 },
                                 opacity: { duration: 0.2 },
                             }}
-                            className="text-center"
+                            className="text-center flex flex-col items-center justify-center flex-1"
                         >
                             {/* Icon */}
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                                className="text-8xl mb-8"
+                                className="text-6xl md:text-8xl mb-4 md:mb-8"
                             >
                                 {currentSlideData.icon}
                             </motion.div>
 
                             {/* Title */}
-                            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-2 md:mb-4">
                                 {currentSlideData.title}
                             </h1>
 
                             {/* Description */}
-                            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl mx-auto">
+                            <p className="text-base md:text-xl text-gray-600 mb-4 md:mb-8 max-w-xl mx-auto">
                                 {currentSlideData.description}
                             </p>
 
                             {/* Custom Content */}
                             {currentSlideData.content && (
-                                <div className="mt-8">{currentSlideData.content}</div>
+                                <div className="mt-4 md:mt-8 w-full">{currentSlideData.content}</div>
                             )}
                         </motion.div>
                     </AnimatePresence>
@@ -128,8 +128,8 @@ export default function OnboardingSlider({ slides, onComplete, onSkip }: Onboard
                                 key={index}
                                 onClick={() => handleDotClick(index)}
                                 className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
-                                        ? 'w-8 bg-indigo-600'
-                                        : 'w-2 bg-gray-300 hover:bg-gray-400'
+                                    ? 'w-8 bg-indigo-600'
+                                    : 'w-2 bg-gray-300 hover:bg-gray-400'
                                     }`}
                                 aria-label={`Go to slide ${index + 1}`}
                             />

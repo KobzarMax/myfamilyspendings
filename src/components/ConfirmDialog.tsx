@@ -55,8 +55,8 @@ export default function ConfirmDialog({
             <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose}></div>
 
             {/* Modal */}
-            <div className="flex min-h-full items-center justify-center p-4">
-                <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <div className="flex min-h-full items-end sm:items-center justify-center p-4">
+                <div className="relative bg-white rounded-t-[20px] sm:rounded-lg shadow-xl max-w-lg w-full overflow-hidden">
                     {/* Close button */}
                     <button
                         onClick={onClose}
