@@ -1,8 +1,12 @@
 import ReactDOM from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { routeTree } from './routeTree.gen.ts';
 import './index.css';
+
+// Register service worker
+registerSW({ immediate: true });
 
 // Create QueryClient instance
 const queryClient = new QueryClient({

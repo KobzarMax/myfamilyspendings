@@ -9,11 +9,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
       },
       manifest: {
+        id: '/',
         name: 'Family Budget Tracker',
         short_name: 'Budget Tracker',
         description: 'Track your family budget together',
@@ -28,12 +33,19 @@ export default defineConfig({
             src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any',
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },
