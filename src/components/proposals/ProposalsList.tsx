@@ -22,11 +22,11 @@ export default function ProposalsList({
     isVoting,
 }: ProposalsListProps) {
     const getUserVote = (proposalId: string) => {
-        return approvals?.find(a => a.proposalId === proposalId && a.userId === userId);
+        return approvals?.find(a => a.proposal_id === proposalId && a.user_id === userId);
     };
 
     const getApprovalCount = (proposalId: string) => {
-        return approvals?.filter(a => a.proposalId === proposalId && a.status === 'approved').length || 0;
+        return approvals?.filter(a => a.proposal_id === proposalId && a.status === 'approved').length || 0;
     };
 
     if (isLoading) {

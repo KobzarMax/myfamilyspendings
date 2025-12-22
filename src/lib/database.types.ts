@@ -189,6 +189,79 @@ export interface Database {
           created_at?: string
         }
       }
+      bank_accounts: {
+        Row: {
+          id: string
+          family_id: string
+          name: string
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          name: string
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          family_id?: string
+          name?: string
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          family_id: string
+          name: string
+          amount: string
+          frequency: 'weekly' | 'monthly' | 'yearly'
+          next_payment_date: string
+          bank_account_id: string | null
+          category: string | null
+          description: string | null
+          is_active: boolean
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          name: string
+          amount: string
+          frequency: 'weekly' | 'monthly' | 'yearly'
+          next_payment_date: string
+          bank_account_id?: string | null
+          category?: string | null
+          description?: string | null
+          is_active?: boolean
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          family_id?: string
+          name?: string
+          amount?: string
+          frequency?: 'weekly' | 'monthly' | 'yearly'
+          next_payment_date?: string
+          bank_account_id?: string | null
+          category?: string | null
+          description?: string | null
+          is_active?: boolean
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }

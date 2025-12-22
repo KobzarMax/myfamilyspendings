@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, useSeedDefaultCategories } from '../../hooks/useCategories';
+import { useCategoryService } from '../../service/useCategory.service';
 import PageHeader from '../../components/PageHeader';
 import Button from '../../components/Button';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -13,6 +13,8 @@ import CategoryGrid from '../../components/categories/CategoryGrid';
 import CategoryModal from '../../components/categories/CategoryModal';
 import EmptyState from '../../components/shared/EmptyState';
 import type { CategoryFormValues } from '../../components/categories/CategoryForm';
+import { motion } from 'framer-motion';
+import { containerVariants, itemVariants } from '../../lib/animations';
 
 export const Route = createFileRoute('/_authenticated/categories')({
   loader: async ({ context: { queryClient } }) => {
@@ -35,11 +37,7 @@ function CategoriesPage() {
   const { data: profile } = useQuery(profileQueryOptions(userId || user?.id));
   const familyId = profile?.family_id || null;
 
-  const { data: categories, isLoading } = useCategories(familyId);
-  const createCategory = useCreateCategory(familyId);
-  const updateCategory = useUpdateCategory(familyId);
-  const deleteCategory = useDeleteCategory(familyId);
-  const seedDefaultCategories = useSeedDefaultCategories(familyId);
+  const service = useCategoryService(familyId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -68,15 +66,12 @@ function CategoriesPage() {
 
     try {
       if (editingCategory) {
-        await updateCategory.mutateAsync({
+        await service.saveCategory({
+          ...values,
           id: editingCategory.id,
-          updates: values,
         });
       } else {
-        await createCategory.mutateAsync({
-          family_id: familyId,
-          ...values,
-        });
+        await service.saveCategory(values);
       }
       setIsModalOpen(false);
       setEditingCategory(null);
@@ -92,8 +87,8 @@ function CategoriesPage() {
       message: 'Are you sure you want to delete this category? This action cannot be undone.',
       variant: 'danger',
       onConfirm: async () => {
-        await deleteCategory.mutateAsync(id);
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        await service.deleteCategoryAsync(id);
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
       },
     });
   };
@@ -106,11 +101,11 @@ function CategoriesPage() {
       variant: 'info',
       onConfirm: async () => {
         try {
-          await seedDefaultCategories.mutateAsync();
-          setConfirmDialog({ ...confirmDialog, isOpen: false });
+          await service.seedDefaultCategoriesAsync();
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         } catch (error) {
           console.error('Failed to seed categories:', error);
-          setConfirmDialog({ ...confirmDialog, isOpen: false });
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         }
       },
     });
@@ -125,20 +120,24 @@ function CategoriesPage() {
     );
   }
 
-  const incomeCategories = categories?.filter(c => c.type === 'income' || c.type === 'both') || [];
-  const expenseCategories = categories?.filter(c => c.type === 'expense' || c.type === 'both') || [];
+
 
   // Prepare initial values for editing
   const initialValues = editingCategory ? {
     name: editingCategory.name,
-    type: editingCategory.type,
+    type: editingCategory.type as 'income' | 'expense' | 'both',
     icon: editingCategory.icon || '',
     color: editingCategory.color || '#6b7280',
   } : undefined;
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-start mb-8">
+    <motion.div
+      className="px-4 sm:px-6 lg:px-8 space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div className="flex justify-between items-start mb-8" variants={itemVariants}>
         <PageHeader
           title="Categories"
           description="Manage your income and expense categories"
@@ -147,33 +146,33 @@ function CategoriesPage() {
             onClick: () => handleOpenModal(),
           }}
         />
-        {categories?.length === 0 && (
+        {service.categories?.length === 0 && (
           <Button
             variant="secondary"
             onClick={handleSeed}
-            isLoading={seedDefaultCategories.isPending}
+            isLoading={service.isSeeding}
           >
             Seed Defaults
           </Button>
         )}
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
         <CategoryGrid
           title="Income Categories"
-          categories={incomeCategories}
-          isLoading={isLoading}
+          categories={service.incomeCategories}
+          isLoading={service.isLoading}
           onEdit={handleOpenModal}
           onDelete={handleDelete}
         />
         <CategoryGrid
           title="Expense Categories"
-          categories={expenseCategories}
-          isLoading={isLoading}
+          categories={service.expenseCategories}
+          isLoading={service.isLoading}
           onEdit={handleOpenModal}
           onDelete={handleDelete}
         />
-      </div>
+      </motion.div>
 
       <CategoryModal
         isOpen={isModalOpen}
@@ -182,20 +181,20 @@ function CategoriesPage() {
           setEditingCategory(null);
         }}
         onSubmit={handleSubmit}
-        isSubmitting={createCategory.isPending || updateCategory.isPending}
+        isSubmitting={service.isSubmitting}
         isEditing={!!editingCategory}
         initialValues={initialValues}
       />
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
         onConfirm={confirmDialog.onConfirm}
         title={confirmDialog.title}
         message={confirmDialog.message}
         variant={confirmDialog.variant}
-        isLoading={deleteCategory.isPending || seedDefaultCategories.isPending}
+        isLoading={service.isDeleting || service.isSeeding}
       />
-    </div>
+    </motion.div>
   );
 }

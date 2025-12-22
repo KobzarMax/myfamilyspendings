@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Home, PlusCircle, Users, PiggyBank, Tags, Menu } from 'lucide-react';
+import { LogOut, Home, PlusCircle, Users, Tags, Menu, RefreshCw } from 'lucide-react';
 import NavLink from './NavLink';
 import MobileMenu from './MobileMenu';
 import MobileNav from './MobileNav';
@@ -51,6 +51,9 @@ export default function Layout() {
                 </NavLink>
                 <NavLink to="/transactions" icon={PlusCircle}>
                   Transactions
+                </NavLink>
+                <NavLink to="/subscriptions" icon={RefreshCw}>
+                  Subscriptions
                 </NavLink>
                 <NavLink to="/proposals" icon={Users}>
                   Proposals

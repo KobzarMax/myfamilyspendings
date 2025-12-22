@@ -11,54 +11,54 @@ describe('Auth Store', () => {
 
   it('sets user correctly', () => {
     const { result } = renderHook(() => useAuthStore());
-    const mockUser = { 
-      id: '123', 
-      email: 'test@example.com', 
-      fullName: 'Test User',
-      avatarUrl: null,
-      familyId: null,
-      updatedAt: null
+    const mockUser = {
+      id: '123',
+      email: 'test@example.com',
+      full_name: 'Test User',
+      avatar_url: null,
+      family_id: null,
+      updated_at: null
     };
-    
+
     act(() => {
       result.current.setUser(mockUser);
     });
-    
+
     expect(result.current.user).toEqual(mockUser);
   });
 
   it('sets familyId correctly', () => {
     const { result } = renderHook(() => useAuthStore());
-    
+
     act(() => {
       result.current.setFamilyId('family-456');
     });
-    
+
     expect(result.current.familyId).toBe('family-456');
   });
 
   it('clears auth state', () => {
     const { result } = renderHook(() => useAuthStore());
-    
+
     act(() => {
-      result.current.setUser({ 
-        id: '123', 
+      result.current.setUser({
+        id: '123',
         email: 'test@example.com',
-        fullName: 'Test User',
-        avatarUrl: null,
-        familyId: null,
-        updatedAt: null
+        full_name: 'Test User',
+        avatar_url: null,
+        family_id: null,
+        updated_at: null
       });
       result.current.setFamilyId('family-456');
     });
-    
+
     expect(result.current.user).toBeTruthy();
     expect(result.current.familyId).toBeTruthy();
-    
+
     act(() => {
       result.current.clearAuth();
     });
-    
+
     expect(result.current.user).toBeNull();
     expect(result.current.familyId).toBeNull();
   });

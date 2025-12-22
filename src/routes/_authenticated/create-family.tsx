@@ -6,6 +6,8 @@ import { useAuthStore } from '../../store/authStore';
 import { categoryApi } from '../../lib/api';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
+import { motion } from 'framer-motion';
+import { containerVariants, itemVariants } from '../../lib/animations';
 
 export const Route = createFileRoute('/_authenticated/create-family')({
   component: CreateFamilyPage,
@@ -52,6 +54,8 @@ function CreateFamilyPage() {
       }
 
       // 1. Create Family
+      console.log('Attempting to create family with:', { name, created_by: user.id });
+
       const { data: family, error: familyError } = await supabase
         .from('families')
         .insert([
@@ -93,9 +97,14 @@ function CreateFamilyPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">Create a Family Space</h1>
-      <form onSubmit={handleCreateFamily} className="space-y-4">
+    <motion.div
+      className="max-w-md mx-auto mt-10 px-4"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.h1 className="text-2xl font-bold mb-6" variants={itemVariants}>Create a Family Space</motion.h1>
+      <motion.form onSubmit={handleCreateFamily} className="space-y-4" variants={itemVariants}>
         <Input
           label="Family Name"
           id="name"
@@ -114,7 +123,8 @@ function CreateFamilyPage() {
         >
           Create Family Space
         </Button>
-      </form>
-    </div>
+      </motion.form>
+    </motion.div>
   );
 }
+

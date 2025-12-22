@@ -1,4 +1,4 @@
-import { X, Home, PlusCircle, Users, Tags, PiggyBank, LogOut, User } from 'lucide-react';
+import { X, Home, PlusCircle, Users, Tags, RefreshCw, LogOut, User } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,9 +14,9 @@ export default function MobileMenu({ isOpen, onClose, onSignOut }: MobileMenuPro
     const menuItems = [
         { to: '/dashboard', icon: Home, label: 'Dashboard' },
         { to: '/transactions', icon: PlusCircle, label: 'Transactions' },
+        { to: '/subscriptions', icon: RefreshCw, label: 'Subscriptions' },
         { to: '/proposals', icon: Users, label: 'Proposals' },
         { to: '/categories', icon: Tags, label: 'Categories' },
-        { to: '/savings', icon: PiggyBank, label: 'Savings' },
     ];
 
     return (

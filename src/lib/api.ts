@@ -8,7 +8,7 @@ export const profileApi = {
       .select('*')
       .eq('id', userId)
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -19,7 +19,7 @@ export const profileApi = {
       .insert([{ id: userId, email, full_name: fullName }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -43,7 +43,7 @@ export const profileApi = {
       .from('profiles')
       .update({ family_id: familyId })
       .eq('id', userId);
-    
+
     if (error) throw error;
   },
 
@@ -52,7 +52,7 @@ export const profileApi = {
       .from('profiles')
       .select('id, email, full_name')
       .eq('family_id', familyId);
-    
+
     if (error) throw error;
     return data;
   },
@@ -66,7 +66,7 @@ export const familyApi = {
       .insert([{ name, created_by: createdBy }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -77,7 +77,7 @@ export const familyApi = {
       .select('*')
       .eq('id', familyId)
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -91,11 +91,11 @@ export const transactionApi = {
       .select('*')
       .eq('family_id', familyId)
       .order('date', { ascending: false });
-    
+
     if (limit) {
       query = query.limit(limit);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return data;
@@ -117,7 +117,7 @@ export const transactionApi = {
       .insert([transaction])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -131,8 +131,8 @@ export const transactionApi = {
     if (error) throw error;
 
     return data.reduce((acc, curr) => {
-      return curr.type === 'income' 
-        ? acc + Number(curr.amount) 
+      return curr.type === 'income'
+        ? acc + Number(curr.amount)
         : acc - Number(curr.amount);
     }, 0);
   },
@@ -146,7 +146,7 @@ export const proposalApi = {
       .select('*')
       .eq('family_id', familyId)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data;
   },
@@ -164,7 +164,7 @@ export const proposalApi = {
       .insert([proposal])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -174,7 +174,7 @@ export const proposalApi = {
       .from('proposals')
       .update({ status })
       .eq('id', proposalId);
-    
+
     if (error) throw error;
   },
 };
@@ -183,11 +183,11 @@ export const proposalApi = {
 export const approvalApi = {
   async getApprovals(proposalId?: string) {
     let query = supabase.from('approvals').select('*');
-    
+
     if (proposalId) {
       query = query.eq('proposal_id', proposalId);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return data;
@@ -208,14 +208,14 @@ export const approvalApi = {
         .from('approvals')
         .update({ status })
         .eq('id', existingVote.id);
-      
+
       if (error) throw error;
     } else {
       // Create new vote
       const { error } = await supabase
         .from('approvals')
         .insert([{ proposal_id: proposalId, user_id: userId, status }]);
-      
+
       if (error) throw error;
     }
   },
@@ -229,7 +229,7 @@ export const categoryApi = {
       .select('*')
       .eq('family_id', familyId)
       .order('name', { ascending: true });
-    
+
     if (error) throw error;
     return data;
   },
@@ -247,7 +247,7 @@ export const categoryApi = {
       .insert([category])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -264,7 +264,7 @@ export const categoryApi = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -274,7 +274,7 @@ export const categoryApi = {
       .from('categories')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   },
 
@@ -286,7 +286,7 @@ export const categoryApi = {
       { family_id: familyId, name: 'Investment', type: 'income' as const, icon: '📈', color: '#8b5cf6', is_default: true },
       { family_id: familyId, name: 'Gift', type: 'income' as const, icon: '🎁', color: '#ec4899', is_default: true },
       { family_id: familyId, name: 'Other Income', type: 'income' as const, icon: '💵', color: '#6b7280', is_default: true },
-      
+
       // Expense categories
       { family_id: familyId, name: 'Groceries', type: 'expense' as const, icon: '🛒', color: '#ef4444', is_default: true },
       { family_id: familyId, name: 'Rent', type: 'expense' as const, icon: '🏠', color: '#f59e0b', is_default: true },
@@ -304,9 +304,186 @@ export const categoryApi = {
       .from('categories')
       .insert(defaultCategories)
       .select();
-    
+
     if (error) throw error;
     return data;
   },
+};
+
+// Bank Account API
+export const bankAccountApi = {
+  async getBankAccounts(familyId: string) {
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .select('*')
+      .eq('family_id', familyId)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async createBankAccount(account: {
+    family_id: string;
+    name: string;
+    created_by: string;
+  }) {
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .insert([account])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateBankAccount(id: string, updates: { name?: string }) {
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteBankAccount(id: string) {
+    const { error } = await supabase
+      .from('bank_accounts')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+};
+
+// Subscription API
+export const subscriptionApi = {
+  async getSubscriptions(familyId: string) {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*, bank_accounts(id, name)')
+      .eq('family_id', familyId)
+      .order('next_payment_date', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async createSubscription(subscription: {
+    family_id: string;
+    name: string;
+    amount: string;
+    frequency: 'weekly' | 'monthly' | 'yearly';
+    next_payment_date: string;
+    bank_account_id?: string | null;
+    category?: string | null;
+    description?: string | null;
+    is_active?: boolean;
+    created_by: string;
+  }) {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .insert([subscription])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateSubscription(id: string, updates: {
+    name?: string;
+    amount?: string;
+    frequency?: 'weekly' | 'monthly' | 'yearly';
+    next_payment_date?: string;
+    bank_account_id?: string | null;
+    category?: string | null;
+    description?: string | null;
+    is_active?: boolean;
+  }) {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteSubscription(id: string) {
+    const { error } = await supabase
+      .from('subscriptions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async getUpcomingSubscriptions(familyId: string, days: number = 30) {
+    const now = new Date();
+    const future = new Date();
+    future.setDate(now.getDate() + days);
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*, bank_accounts(id, name)')
+      .eq('family_id', familyId)
+      .eq('is_active', true)
+      .gte('next_payment_date', now.toISOString())
+      .lte('next_payment_date', future.toISOString())
+      .order('next_payment_date', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  },
+};
+
+export const dashboardApi = {
+  async getPendingProposals(familyId: string, userId: string) {
+    // Fetch pending proposals
+    const { data: proposals, error: proposalsError } = await supabase
+      .from('proposals')
+      .select('*')
+      .eq('family_id', familyId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (proposalsError) throw proposalsError;
+
+    // Fetch user's votes for these proposals
+    const proposalIds = proposals.map(p => p.id);
+    if (proposalIds.length === 0) return [];
+
+    const { data: votes, error: votesError } = await supabase
+      .from('approvals')
+      .select('proposal_id')
+      .eq('user_id', userId)
+      .in('proposal_id', proposalIds);
+
+    if (votesError) throw votesError;
+
+    const votedProposalIds = new Set(votes.map(v => v.proposal_id));
+
+    // Return only proposals user hasn't voted on
+    return proposals.filter(p => !votedProposalIds.has(p.id));
+  },
+
+  async getTransactionHistory(familyId: string, startDate: Date) {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('amount, type, date')
+      .eq('family_id', familyId)
+      .gte('date', startDate.toISOString())
+      .order('date', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  }
 };
 

@@ -8,36 +8,31 @@ interface BalanceCardProps {
 
 export default function BalanceCard({ balance, isLoading }: BalanceCardProps) {
     return (
-        <div className="overflow-hidden rounded-lg bg-white shadow">
-            <div className="p-5">
-                <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                        <Wallet className="h-6 w-6 text-gray-400" aria-hidden="true" />
+        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-primary to-violet-700 p-6 text-primary-foreground shadow-lg transition-all hover:shadow-xl">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-sm font-medium text-white/80">Total Balance</p>
+                    <div className="mt-2 flex items-baseline gap-2">
+                        <h2 className="text-3xl font-bold tracking-tight">
+                            {isLoading ? (
+                                <div className="h-8 w-32 animate-pulse rounded bg-white/20" />
+                            ) : (
+                                Number(balance || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+                            )}
+                        </h2>
                     </div>
-                    <div className="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt className="truncate text-sm font-medium text-gray-500">Current Balance</dt>
-                            <dd>
-                                <div className="text-lg font-medium text-gray-900">
-                                    {isLoading ? (
-                                        <div className="animate-pulse bg-gray-200 h-6 w-24 rounded" />
-                                    ) : balance !== undefined ? (
-                                        `$${balance.toFixed(2)}`
-                                    ) : (
-                                        <div className="animate-pulse bg-gray-200 h-6 w-24 rounded" />
-                                    )}
-                                </div>
-                            </dd>
-                        </dl>
-                    </div>
+                </div>
+                <div className="rounded-full bg-white/20 p-3 backdrop-blur-sm">
+                    <Wallet className="h-6 w-6 text-white" />
                 </div>
             </div>
-            <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                    <Link to="/transactions" className="font-medium text-indigo-700 hover:text-indigo-900">
-                        View all transactions
-                    </Link>
-                </div>
+            <div className="mt-6 flex items-center justify-between">
+                <Link
+                    to="/transactions"
+                    className="text-xs font-semibold uppercase tracking-wider text-white/80 hover:text-white"
+                >
+                    View Transactions &rarr;
+                </Link>
             </div>
         </div>
     );

@@ -1,17 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Plus } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
-import { profileQueryOptions, transactionsQueryOptions, categoriesQueryOptions } from '../../lib/queries';
+import { categoriesQueryOptions, profileQueryOptions, transactionsQueryOptions } from '../../lib/queries';
+import { useTransactionService } from '../../service/useTransaction.service';
 import TransactionsTable from '../../components/transactions/TransactionsTable';
 import AddTransactionModal from '../../components/transactions/AddTransactionModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import EmptyState from '../../components/shared/EmptyState';
 import type { TransactionFormValues } from '../../components/transactions/TransactionForm';
 import type { Transaction } from '../../types';
+import { motion } from 'framer-motion';
+import { containerVariants, itemVariants } from '../../lib/animations';
 
 export const Route = createFileRoute('/_authenticated/transactions')({
   loader: async ({ context: { queryClient } }) => {
@@ -39,7 +42,6 @@ function TransactionsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const queryClient = useQueryClient();
 
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -55,73 +57,18 @@ function TransactionsPage() {
   });
 
   const { data: categories } = useCategories(familyId);
-  const { data: transactions, isLoading } = useQuery(transactionsQueryOptions(familyId || undefined));
-
-  const addTransactionMutation = useMutation({
-    mutationFn: async (newTransaction: TransactionFormValues) => {
-      if (!familyId || !user) throw new Error('Missing family or user');
-
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([
-          {
-            ...newTransaction,
-            family_id: familyId,
-            user_id: user.id,
-          },
-        ])
-        .select();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-      queryClient.invalidateQueries({ queryKey: ['balance', familyId] });
-      setIsModalOpen(false);
-      setEditingTransaction(null);
-    },
-  });
-
-  const updateTransactionMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: TransactionFormValues }) => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .update(updates)
-        .eq('id', id)
-        .select();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-      queryClient.invalidateQueries({ queryKey: ['balance', familyId] });
-      setIsModalOpen(false);
-      setEditingTransaction(null);
-    },
-  });
-
-  const deleteTransactionMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-      queryClient.invalidateQueries({ queryKey: ['balance', familyId] });
-    },
-  });
+  const service = useTransactionService(familyId, user);
 
   const handleSubmit = (values: TransactionFormValues) => {
+    const onSuccess = () => {
+      setIsModalOpen(false);
+      setEditingTransaction(null);
+    };
+
     if (editingTransaction) {
-      updateTransactionMutation.mutate({ id: editingTransaction.id, updates: values });
+      service.updateTransaction({ id: editingTransaction.id, updates: values }, { onSuccess });
     } else {
-      addTransactionMutation.mutate(values);
+      service.addTransaction(values, { onSuccess });
     }
   };
 
@@ -136,8 +83,8 @@ function TransactionsPage() {
       title: 'Delete Transaction',
       message: 'Are you sure you want to delete this transaction? This action cannot be undone.',
       onConfirm: async () => {
-        await deleteTransactionMutation.mutateAsync(id);
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        await service.deleteTransactionAsync(id);
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
       },
     });
   };
@@ -162,16 +109,21 @@ function TransactionsPage() {
     type: editingTransaction.type,
     category: editingTransaction.category,
     description: editingTransaction.description || '',
-    date: editingTransaction.date instanceof Date
-      ? editingTransaction.date.toISOString().split('T')[0]
-      : editingTransaction.date,
-    is_recurring: editingTransaction.isRecurring || false,
+    date: editingTransaction.date.split('T')[0],
+    is_recurring: editingTransaction.is_recurring || false,
     status: editingTransaction.status,
   } : undefined;
 
+
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
+    <motion.div
+      className="px-4 sm:px-6 lg:px-8 space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div className="sm:flex sm:items-center" variants={itemVariants}>
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold leading-6 text-gray-900">Transactions</h1>
           <p className="mt-2 text-sm text-gray-700">
@@ -182,28 +134,30 @@ function TransactionsPage() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             <Plus className="h-4 w-4" />
             Add Transaction
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Transactions Table */}
-      <TransactionsTable
-        transactions={transactions}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <motion.div variants={itemVariants}>
+        <TransactionsTable
+          transactions={service.transactions}
+          isLoading={service.transactionsLoading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </motion.div>
 
       {/* Add/Edit Transaction Modal */}
       <AddTransactionModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
-        isSubmitting={addTransactionMutation.isPending || updateTransactionMutation.isPending}
+        isSubmitting={service.isSubmitting}
         categories={categories}
         isEditing={!!editingTransaction}
         initialValues={initialValues}
@@ -212,13 +166,13 @@ function TransactionsPage() {
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
         onConfirm={confirmDialog.onConfirm}
         title={confirmDialog.title}
         message={confirmDialog.message}
         variant="danger"
-        isLoading={deleteTransactionMutation.isPending}
+        isLoading={service.isDeleting}
       />
-    </div>
+    </motion.div>
   );
 }

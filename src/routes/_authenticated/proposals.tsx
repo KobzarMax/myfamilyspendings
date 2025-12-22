@@ -1,181 +1,61 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Plus } from 'lucide-react';
-import type { Proposal, Approval } from '../../types';
 import ProposalsList from '../../components/proposals/ProposalsList';
 import CreateProposalModal from '../../components/proposals/CreateProposalModal';
 import EmptyState from '../../components/shared/EmptyState';
 import type { ProposalFormValues } from '../../components/proposals/ProposalForm';
+import { profileQueryOptions } from '../../lib/queries';
+import { useProposalService } from '../../service/useProposal.service';
+import { motion } from 'framer-motion';
+import { containerVariants, itemVariants } from '../../lib/animations';
 
 export const Route = createFileRoute('/_authenticated/proposals')({
+  loader: async ({ context: { queryClient } }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await queryClient.ensureQueryData(profileQueryOptions(user.id));
+    }
+  },
   component: ProposalsPage,
 });
 
 function ProposalsPage() {
   const { user } = useAuth();
-  const [familyId, setFamilyId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    async function getFamilyId() {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('family_id')
-        .eq('id', user.id)
-        .single();
-      if (data) setFamilyId(data.family_id);
-    }
-    getFamilyId();
-  }, [user]);
+  // Use TanStack Query to fetch profile and derive familyId
+  const { data: profile, isLoading: isLoadingProfile } = useQuery(profileQueryOptions(user?.id));
+  const familyId = profile?.family_id;
 
-  const { data: proposals, isLoading } = useQuery({
-    queryKey: ['proposals', familyId],
-    queryFn: async () => {
-      if (!familyId) return [];
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Proposal[];
-    },
-    enabled: !!familyId,
-  });
-
-  const { data: approvals } = useQuery({
-    queryKey: ['approvals', familyId],
-    queryFn: async () => {
-      if (!familyId) return [];
-      const { data, error } = await supabase
-        .from('approvals')
-        .select('*');
-
-      if (error) throw error;
-      return data as Approval[];
-    },
-    enabled: !!familyId,
-  });
-
-  const { data: familyMembers } = useQuery({
-    queryKey: ['family-members', familyId],
-    queryFn: async () => {
-      if (!familyId) return [];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('family_id', familyId);
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!familyId,
-  });
-
-  const createProposalMutation = useMutation({
-    mutationFn: async (newProposal: ProposalFormValues) => {
-      if (!familyId || !user) throw new Error('Missing family or user');
-
-      const { data, error } = await supabase
-        .from('proposals')
-        .insert([
-          {
-            ...newProposal,
-            family_id: familyId,
-            proposer_id: user.id,
-          },
-        ])
-        .select();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proposals', familyId] });
-      setIsModalOpen(false);
-    },
-  });
-
-  const voteProposalMutation = useMutation({
-    mutationFn: async ({ proposalId, voteStatus }: { proposalId: string; voteStatus: 'approved' | 'rejected' }) => {
-      if (!user) throw new Error('Missing user');
-
-      // Check if user already voted
-      const { data: existingVote } = await supabase
-        .from('approvals')
-        .select('*')
-        .eq('proposal_id', proposalId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (existingVote) {
-        // Update existing vote
-        const { error } = await supabase
-          .from('approvals')
-          .update({ status: voteStatus })
-          .eq('id', existingVote.id);
-        if (error) throw error;
-      } else {
-        // Create new vote
-        const { error } = await supabase
-          .from('approvals')
-          .insert([
-            {
-              proposal_id: proposalId,
-              user_id: user.id,
-              status: voteStatus,
-            },
-          ]);
-        if (error) throw error;
-      }
-
-      // Check if all members have approved
-      const { data: allApprovals, error: approvalsError } = await supabase
-        .from('approvals')
-        .select('*')
-        .eq('proposal_id', proposalId);
-
-      if (approvalsError) throw approvalsError;
-
-      const totalMembers = familyMembers?.length || 0;
-      const approvedCount = allApprovals?.filter(a => a.status === 'approved').length || 0;
-      const rejectedCount = allApprovals?.filter(a => a.status === 'rejected').length || 0;
-
-      // If all members approved, update proposal status
-      if (approvedCount === totalMembers) {
-        const { error: updateError } = await supabase
-          .from('proposals')
-          .update({ status: 'approved' })
-          .eq('id', proposalId);
-        if (updateError) throw updateError;
-      } else if (rejectedCount > 0) {
-        // If anyone rejected, mark as rejected
-        const { error: updateError } = await supabase
-          .from('proposals')
-          .update({ status: 'rejected' })
-          .eq('id', proposalId);
-        if (updateError) throw updateError;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proposals', familyId] });
-      queryClient.invalidateQueries({ queryKey: ['approvals', familyId] });
-    },
-  });
+  const service = useProposalService(familyId, user);
 
   const handleSubmit = (values: ProposalFormValues) => {
-    createProposalMutation.mutate(values);
+    service.createProposal(values, {
+      onSuccess: () => setIsModalOpen(false)
+    });
   };
 
   const handleVote = (proposalId: string, voteStatus: 'approved' | 'rejected') => {
-    voteProposalMutation.mutate({ proposalId, voteStatus });
+    service.voteProposal({ proposalId, voteStatus });
   };
+
+  if (isLoadingProfile) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-32 w-full max-w-lg animate-pulse rounded-lg bg-muted/50 p-6">
+          <div className="h-6 w-1/3 rounded bg-muted/50 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-4 w-full rounded bg-muted/50"></div>
+            <div className="h-4 w-5/6 rounded bg-muted/50"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!familyId) {
     return (
@@ -187,8 +67,13 @@ function ProposalsPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
+    <motion.div
+      className="px-4 sm:px-6 lg:px-8 space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div className="sm:flex sm:items-center" variants={itemVariants}>
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold leading-6 text-gray-900">Proposals</h1>
           <p className="mt-2 text-sm text-gray-700">
@@ -199,32 +84,34 @@ function ProposalsPage() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+            className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
             Create Proposal
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Proposals List */}
-      <ProposalsList
-        proposals={proposals}
-        approvals={approvals}
-        familyMembers={familyMembers}
-        userId={user?.id}
-        isLoading={isLoading}
-        onVote={handleVote}
-        isVoting={voteProposalMutation.isPending}
-      />
+      <motion.div variants={itemVariants}>
+        <ProposalsList
+          proposals={service.proposals}
+          approvals={service.approvals}
+          familyMembers={service.familyMembers}
+          userId={user?.id}
+          isLoading={service.proposalsLoading}
+          onVote={handleVote}
+          isVoting={service.isVoting}
+        />
+      </motion.div>
 
       {/* Create Proposal Modal */}
       <CreateProposalModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
-        isSubmitting={createProposalMutation.isPending}
+        isSubmitting={service.isCreating}
       />
-    </div>
+    </motion.div>
   );
 }

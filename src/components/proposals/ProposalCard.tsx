@@ -29,16 +29,16 @@ export default function ProposalCard({
                             {proposal.type}
                         </span>
                         <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${proposal.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                proposal.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                    'bg-yellow-100 text-yellow-800'
+                            proposal.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
                             }`}>
                             {proposal.status}
                         </span>
                     </div>
                     <p className="mt-1 text-sm text-gray-500">Amount: ${Number(proposal.amount).toFixed(2)}</p>
-                    {proposal.targetDate && (
+                    {proposal.target_date && (
                         <p className="mt-1 text-sm text-gray-500">
-                            Target Date: {new Date(proposal.targetDate).toLocaleDateString()}
+                            Target Date: {new Date(proposal.target_date).toLocaleDateString()}
                         </p>
                     )}
                     <p className="mt-2 text-sm text-gray-600">
@@ -52,8 +52,8 @@ export default function ProposalCard({
                             onClick={() => onVote(proposal.id, 'approved')}
                             disabled={userVote?.status === 'approved' || isVoting}
                             className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold shadow-sm ${userVote?.status === 'approved'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
                                 } disabled:opacity-50`}
                         >
                             <ThumbsUp className="h-4 w-4" />
@@ -63,8 +63,8 @@ export default function ProposalCard({
                             onClick={() => onVote(proposal.id, 'rejected')}
                             disabled={userVote?.status === 'rejected' || isVoting}
                             className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold shadow-sm ${userVote?.status === 'rejected'
-                                    ? 'bg-red-600 text-white'
-                                    : 'bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                                ? 'bg-red-600 text-white'
+                                : 'bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
                                 } disabled:opacity-50`}
                         >
                             <ThumbsDown className="h-4 w-4" />

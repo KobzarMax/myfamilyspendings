@@ -1,14 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 
 export default defineConfig({
   plugins: [
-    TanStackRouterVite({
-      routesDirectory: './src/routes',
-      generatedRouteTree: './src/routeTree.gen.ts',
-    }),
+    TanStackRouterVite(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',

@@ -1,4 +1,4 @@
-import { Home, PlusCircle, Users, Tags, PiggyBank } from 'lucide-react';
+import { Home, PlusCircle, Users, Tags, RefreshCw } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 
 export default function MobileNav() {
@@ -8,9 +8,9 @@ export default function MobileNav() {
     const navItems = [
         { to: '/dashboard', icon: Home, label: 'Home' },
         { to: '/transactions', icon: PlusCircle, label: 'Transactions' },
+        { to: '/subscriptions', icon: RefreshCw, label: 'Subscriptions' },
         { to: '/proposals', icon: Users, label: 'Proposals' },
         { to: '/categories', icon: Tags, label: 'Categories' },
-        { to: '/savings', icon: PiggyBank, label: 'Savings' },
     ];
 
     return (
@@ -23,8 +23,8 @@ export default function MobileNav() {
                             key={item.to}
                             to={item.to}
                             className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-colors ${isActive
-                                    ? 'text-indigo-600'
-                                    : 'text-gray-600 hover:text-indigo-600'
+                                ? 'text-indigo-600'
+                                : 'text-gray-600 hover:text-indigo-600'
                                 }`}
                         >
                             <item.icon className={`h-6 w-6 ${isActive ? 'stroke-2' : ''}`} />

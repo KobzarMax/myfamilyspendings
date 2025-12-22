@@ -6,7 +6,7 @@ import {
   transactions,
   proposals,
   approvals,
-} from '../lib/db/schema';
+} from '../db/drizzle/schema';
 
 // Infer types from Drizzle schema
 export type User = InferSelectModel<typeof profiles>;

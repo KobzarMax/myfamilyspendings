@@ -30,7 +30,7 @@ export default function CategoryCard({ category, onEdit, onDelete }: CategoryCar
                 >
                     <Pencil className="h-4 w-4" />
                 </button>
-                {!category.isDefault && (
+                {!category.is_default && (
                     <button
                         onClick={() => onDelete(category.id)}
                         className="p-2 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100"
